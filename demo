@@ -1,0 +1,390 @@
+<template>
+  <div class="fd-map-box">
+      <div class="fd-map" id="map">
+      </div> 
+      <div class="fd-courts">
+          <el-row class="fd-courts-header">
+            <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12" class="fd-header-item fd-header-item1">城区</el-col>
+            <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12" class="fd-header-item">人数</el-col>
+          </el-row>
+          <el-row class="fd-courts-list">
+            <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24" class="fd-list-item" v-for="(value,key,index) in districts"  :key="key"  @click.native="selectRegion(key)" :class="{on:selected==key}"> 
+                <el-row class="fd-chart-box">
+                    <el-col :xs="10" :sm="10" :md="10" :lg="10" :xl="10" class="fd-list-map"  :class="getBgClass(key)">
+                        {{key}}
+                    </el-col>
+                    <el-col :xs="14" :sm="14" :md="14" :lg="14" :xl="14" class="fd-list-bar"  v-bind:id="'charts'+index">
+                         <span class="fd-num">{{value}}人</span>
+                         <div class="fd-charts-bg"><span class="fd-charts-bar"></span></div>
+                    </el-col>
+                </el-row>  
+            </el-col>
+          </el-row>
+      </div>
+  </div>
+</template>
+<script>
+import $ from 'jquery'
+import echarts from 'echarts'
+require('echarts/map/js/province/beijing')
+export default {
+  data() {
+    return {
+      data: null,
+      districts:null,
+      total:null,
+      rates:[],
+      mapCharts:'',
+      selected:'',
+      mapdata:[],
+      barnames : ["人大代表已办结反馈", "准备办理的代表建议", "办理之中的代表建议", "政协委员已办结反馈",
+          "准备办理的委员建议", "办理之中的委员建议"],
+      option : {  
+        color:['#f8f8f8','#72b6ad'],
+        title:{  
+            text: '各区监察对象分布情况',  
+            left:'center',
+            top:48,
+            textStyle:{
+              color:"#1d0107",
+              fontFamily:"microsoft yahei",
+              fontWeight:"normal",
+              fontSize:24
+            }  
+        },  
+        tooltip: {  
+          trigger: 'item',  
+          formatter: '{b}<br/>{c} (个)'  
+        },  
+        series:[  
+                {  
+                    name: '各区监察对象分布情况',  
+                    type: 'map',
+                    mapType: '北京',
+                    // type: 'map',//type必须声明为 map 说明该图标为echarts 中map类型  
+                    // map: '北京', //这里需要特别注意。如果是中国地图，map值为china，如果为各省市则为中文。这里用北京  
+                    aspectScale: 0.75, //长宽比. default: 0.75  
+                    zoom: 1.05,  
+                    geoCoord:{
+                        '门头沟区':[116.1,39.93]
+                    },
+                    //roam: true,  
+                    itemStyle:{  
+                        normal:{
+                          label:{show:true,
+                            textStyle:{
+                              color:"#333333",
+                              // fontSize:14,
+                              align:'center'
+                            }
+                          },
+                          color:"#f8f8f8",
+                          borderColor: '#bbbfc5',
+                          areaColor: '#f8f8f8'
+                        },  
+                        emphasis:{
+                          label:{show:true},
+                          color:"#72b6ad",
+                          areaColor: '#72b6ad'
+                        }
+                    }, 
+                    data: ''
+                }  
+            ]  
+         }
+    };
+  },
+  mounted() {
+    this.$electron.ipcRenderer.send("statistic-district", "district");
+    this.$electron.ipcRenderer.on("statistic-district-data", (event, data) => {
+        this.data = data;
+        this.districts =data.districts;
+        this.total=data.total;
+        this.$nextTick(function(){
+            this.mapCharts = echarts.init(document.getElementById('map'));
+            var _this=this;
+            for(var item in this.districts){
+                var rate=this.districts[item]/this.total*100+'%';
+                var temp={};
+                temp.name=item;
+                temp.value=this.districts[item];
+                this.mapdata.push(temp);
+                this.rates.push(rate);
+            }
+            $(".fd-list-item").each(function(i) {
+                $(this).find(".fd-charts-bar").css({"width":_this.rates[i]});
+            });  
+            this.option.series[0].data=this.mapdata;
+            this.mapCharts.setOption(this.option);    
+            this.mapCharts.on("click",function(param){
+                _this.selected=param.name;
+                var region=_this.getBgClass(param.name);
+                var x=$(".fd-courts-list").offset().top;
+                var h=$(".fd-courts-list").get(0).offsetHeight/2;
+                var top=$("."+region).offset().top+$(".fd-courts-list").scrollTop();
+                var st=top-x-h; 
+                $(".fd-courts-list").stop().animate({"scrollTop":st},1000); 
+            })
+        })
+    });
+  },
+  methods:{
+    getBgClass(item){
+      switch(item){
+          case "东城区" :return "dcq";break;
+          case "丰台区" :return 'ftq';break;
+          case "大兴区" :return 'dxq';break;
+          case "密云区" :return 'myq';break;
+          case "平谷区" :return 'pgq';break;
+          case "延庆区" :return 'yqq';break;
+          case "怀柔区" :return 'hrq';break;
+          case "房山区" :return 'fsq';break;
+          case "昌平区" :return 'cpq';break;
+          case "朝阳区" :return 'cyq';break;
+          case "海淀区" :return 'hdq';break;
+          case "石景山区" :return 'sjsq';break;
+          case "西城区" :return 'xcq';break;
+          case "通州区" :return 'tzq';break;
+          case "长安区" :return 'caq';break;
+          case "门头沟区" :return 'mtgq';break;
+          case "顺义区" :return 'syq';break;
+      }
+    },
+    selectRegion (key){
+      this.selected=key;
+    }
+  },
+  watch:{
+    selected:function(val,oldVal){
+      this.$nextTick(function(){
+          this.mapCharts.dispatchAction({
+            type:'mapUnSelect',
+            name:oldVal
+          });
+          this.mapCharts.dispatchAction({
+            type:'mapSelect',
+            name:val
+          });
+      }) 
+    }
+  }
+};
+</script>
+<style lang="scss" scoped type="text/css">
+.dcq{
+  background: url(../assets/dcq.png) no-repeat  center;
+}
+.ftq{
+  background: url(../assets/ftq.png) no-repeat  center ;
+}
+.dxq{
+  background: url(../assets/dxq.png) no-repeat  center;
+}
+.myq{
+  background: url(../assets/myq.png) no-repeat  center; 
+}
+.pgq{
+  background: url(../assets/pgq.png) no-repeat  center;
+}
+.yqq{
+  background: url(../assets/yqq.png) no-repeat  center;
+}
+.hrq{
+  background: url(../assets/hrq.png) no-repeat  center 5px;
+}
+.fsq{
+  background: url(../assets/fsq.png) no-repeat  center;
+}
+.cpq{
+  background: url(../assets/cpq.png) no-repeat  center;
+}
+.cyq{
+  background: url(../assets/cyq.png) no-repeat  center ;
+}
+.hdq{
+  background: url(../assets/hdq.png) no-repeat  center ;
+}
+.sjsq{
+  background: url(../assets/sjsq.png) no-repeat  center ;
+}
+.xcq{
+  background: url(../assets/xcq.png) no-repeat  center ;
+}
+.tzq{
+  background: url(../assets/tzq.png) no-repeat  center;
+}
+.caq{
+  // background: url(../assets/caq.png) no-repeat  center;
+}
+.mtgq{
+  background: url(../assets/mtgq.png) no-repeat  center;
+}
+.syq{
+  background: url(../assets/syq.png) no-repeat  center;
+}
+.fd-list-item{
+  cursor:pointer;
+}
+.fd-list-item.on .dcq{
+  background: url(../assets/dcq-on.png) no-repeat  center;
+}
+.fd-list-item.on .ftq{
+  background: url(../assets/ftq-on.png) no-repeat  center;
+}
+.fd-list-item.on .dxq{
+  background: url(../assets/dxq-on.png) no-repeat  center;
+}
+.fd-list-item.on .myq{
+  background: url(../assets/myq-on.png) no-repeat  center; 
+}
+.fd-list-item.on .pgq{
+  background: url(../assets/pgq-on.png) no-repeat  center;
+}
+.fd-list-item.on .yqq{
+  background: url(../assets/yqq-on.png) no-repeat  center;
+}
+.fd-list-item.on .hrq{
+  background: url(../assets/hrq-on.png) no-repeat  center 5px;
+}
+.fd-list-item.on .fsq{
+  background: url(../assets/fsq-on.png) no-repeat  center;
+}
+.fd-list-item.on .cpq{
+  background: url(../assets/cpq-on.png) no-repeat  center;
+}
+.fd-list-item.on .cyq{
+  background: url(../assets/cyq-on.png) no-repeat  center;
+}
+.fd-list-item.on .hdq{
+  background: url(../assets/hdq-on.png) no-repeat  center;
+}
+.fd-list-item.on .sjsq{
+  background: url(../assets/sjsq-on.png) no-repeat  center;
+}
+.fd-list-item.on .xcq{
+  background: url(../assets/xcq-on.png) no-repeat  center;
+}
+.fd-list-item.on .tzq{
+  background: url(../assets/tzq-on.png) no-repeat  center;
+}
+.fd-list-item.on .caq{
+  // background: url(../assets/caq-on.png) no-repeat  center;
+}
+.fd-list-item.on .mtgq{
+  background: url(../assets/mtgq-on.png) no-repeat  center;
+}
+.fd-list-item.on .syq{
+  background: url(../assets/syq-on.png) no-repeat  center;
+}
+*{
+  font-family:"microsoft yahei";
+}
+.fd-map-box{
+    width: 100%;
+    height:100%;
+    background: url(../assets/map-bg.jpg) no-repeat  center;
+    background-size:100% 100%;
+    overflow: hidden;
+    position:relative;
+}
+.fd-map{
+    width:73%;
+    height:100%;
+}
+.fd-courts{
+  position:absolute;
+  width:calc(27% - 27px);
+  top:34px;
+  right:27px;
+  bottom:34px;
+  // height:100%;
+  background:rgba(255,255,255,.9);
+  box-shadow:1px 3px 10px rgba(2,0,7,.31);
+  border-radius:4px;
+  -webkit-border-radius:4px;
+  -moz-border-radius:4px;
+}
+.fd-courts-header{
+  height:52px;
+  background:#e8e8e8;
+  border-radius:4px 4px 0 0;
+}
+.fd-header-item{
+  width:50%;
+  height:100%;
+  // line-height:1em;
+  text-align:center;
+  font-size:18px;
+  line-height:34px;
+  padding:9px 0;
+}
+.fd-header-item1{
+  border-right:1px solid #ccdcda;
+}
+.fd-courts-list{
+  height:calc(100% - 52px);
+  overflow-y:scroll;
+
+}
+.fd-list-map{
+  padding-top:74px;
+  // padding-left:48px;
+  text-align:center;
+}
+.fd-list-item{
+  height:115px;
+  padding:0 28px;
+  font-size: 16px;
+}
+.fd-chart-box{
+  border-bottom:1px solid #e6e6e6;
+  // border-top:1px solid #f8f8f8;
+}
+.fd-chart-box,
+.fd-list-bar{
+  height:100%;
+  font-size: 16px;
+}
+.fd-list-bar{
+   position:relative;
+}
+.fd-charts-bg{
+  height:13px;
+  background:#e3e3e3;
+  width:100%;
+  top:78px;
+  left:0;
+  position:absolute;
+}
+.fd-list-item.on{
+  background:#72b6ad;
+  color:#fff;
+  box-shadow:0 4px 7px  rgba(141,141,141,.3);
+  // margin-bottom:-1px;
+}
+.fd-list-item.on .fd-chart-box{
+  border-bottom:1px solid #72b6ad;
+}
+.fd-list-item.on .fd-charts-bar{
+   background: linear-gradient(#ef9f2e, #ed6623);
+}
+.fd-num{
+  position:absolute;
+  top:50px;
+  color:#61978d;
+}
+.fd-list-item.on .fd-num{
+  color:#fff;
+}
+.fd-charts-bar{
+  height:9px;
+  position:absolute;
+  top:2px;
+  left:2px;
+  display:inline-block;
+  // width:80%;
+  background: #5aaea4;
+  border-radius:2px;
+}
+
+</style>
