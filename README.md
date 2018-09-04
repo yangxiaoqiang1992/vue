@@ -20,8 +20,8 @@ watch:{<br>
 ### 如果需要修改地图坐标，修改module下的map/province/xx.js是没有效果的，代码编译后会覆盖所做的修改，可换成json方式引入地图，在json中修改地图坐标，异步请求静态json文件即可<br>
 ```
   $.get('static/js/beijing.json', function (beijing){
-                echarts.registerMap('北京', beijing) //注册
-                // this.option.series[0].map="北京";
-                _this.mapCharts.setOption(_this.option);   
+    echarts.registerMap('北京', beijing) //注册
+    // this.option.series[0].map="北京";
+    _this.mapCharts.setOption(_this.option);   
  }) 
 ```
