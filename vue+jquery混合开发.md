@@ -1,9 +1,8 @@
 # vue
 vue和jquery混合开发
 
-问题描述：一般情况，尽量避免vue+jquery混合开发，但某些情况下需要使用现有的jquery插件或自己开发插件，比如自己开发的一款日期插件，如下图所示，在jquery插件内部，操作dom,并给input赋值，虽然使用v-model双向绑定，但vue不能检测到数据的变化
-
-
+问题描述：一般情况，尽量避免vue+jquery混合开发，但某些情况下需要使用现有的jquery插件或自己开发插件，比如自己开发的一款日期插件，如下图所示，在jquery插件内部，操作dom,并给input赋值，虽然使用v-model双向绑定，但vue不能检测到数据的变化<br>
+![blockchain](https://github.com/yangxiaoqiang1992/vue/blob/master/%E6%97%A5%E5%8E%86%E5%9B%BE%E7%89%87.jpg "日历图片")
 
 解决方法：jquery插件内部，触发input的change事件，在change事件对input的值进行修改，这样就能获取到变化之后的数据
 
